@@ -155,6 +155,38 @@
             background: #ffe0e0 !important;
         }
 
+        tbody tr.planejado {
+            background: #e1bee7 !important;
+        }
+
+        .planejado-checkbox {
+            width: 28px;
+            height: 28px;
+            border: 3px solid #9D00FF;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+            margin: 0 auto;
+            display: block;
+            background: white;
+        }
+
+        .planejado-checkbox.checked {
+            background: #9D00FF;
+        }
+
+        .planejado-checkbox.checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 18px;
+        }
+
         td {
             padding: 15px;
             font-size: 14px;
@@ -466,13 +498,19 @@
         <div class="search-box">
             <input type="text" id="searchInput" placeholder="🔍 Buscar loja..." onkeyup="filterTable()">
         </div>
-        <button class="btn-clear" onclick="clearVisits()">
-            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
-                <polyline points="3 6 5 6 21 6"></polyline>
-                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
-            </svg>
-            Limpar
-        </button>
+        <div style="display: flex; gap: 10px; align-items: center;">
+            <label style="display: flex; align-items: center; gap: 8px; background: white; padding: 8px 15px; border-radius: 8px; cursor: pointer;">
+                <input type="checkbox" id="filterZeroVisitas" onchange="filterTable()" style="width: 18px; height: 18px; cursor: pointer;">
+                <span style="font-weight: 600; color: #2e7d32;">Apenas não visitadas</span>
+            </label>
+            <button class="btn-clear" onclick="clearVisits()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="3 6 5 6 21 6"></polyline>
+                    <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+                </svg>
+                Limpar
+            </button>
+        </div>
     </div>
 
     <div class="table-container">
@@ -483,6 +521,7 @@
                     <th>Nome da Loja</th>
                     <th>Potencial</th>
                     <th>Gravame Mês</th>
+                    <th>Planejado</th>
                     <th>Pagamento</th>
                     <th>Visitas</th>
                     <th>Progresso</th>
@@ -668,6 +707,17 @@
                 tdGravameMes.style.textAlign = 'center';
                 tdGravameMes.style.color = '#2e7d32';
                 
+                // Célula Planejado
+                const tdPlanejado = document.createElement('td');
+                tdPlanejado.style.textAlign = 'center';
+                tdPlanejado.style.padding = '15px';
+                
+                const planejadoCheckbox = document.createElement('div');
+                planejadoCheckbox.className = `planejado-checkbox ${loja.planejado ? 'checked' : ''}`;
+                planejadoCheckbox.onclick = () => togglePlanejado(index);
+                
+                tdPlanejado.appendChild(planejadoCheckbox);
+                
                 const tdPagamento = document.createElement('td');
                 const pagamentoCell = document.createElement('div');
                 pagamentoCell.className = 'pagamento-cell';
@@ -729,6 +779,7 @@
                 tr.appendChild(tdNome);
                 tr.appendChild(tdPotencial);
                 tr.appendChild(tdGravameMes);
+                tr.appendChild(tdPlanejado);
                 tr.appendChild(tdPagamento);
                 tr.appendChild(tdVisitas);
                 tr.appendChild(tdProgresso);
@@ -772,6 +823,14 @@
             } else {
                 lojas[index].visitasVirtual[checkboxIndex] = !lojas[index].visitasVirtual[checkboxIndex];
             }
+            
+            // Limpar planejado quando marcar qualquer visita
+            const totalVisits = lojas[index].visitasPresencial.filter(v => v).length + 
+                               lojas[index].visitasVirtual.filter(v => v).length;
+            if (totalVisits > 0) {
+                lojas[index].planejado = false;
+            }
+            
             renderTable();
         }
 
@@ -793,6 +852,11 @@
             renderTable();
         }
 
+        function togglePlanejado(index) {
+            lojas[index].planejado = !lojas[index].planejado;
+            renderTable();
+        }
+
         function updateRowColor(index) {
             const loja = lojas[index];
             const checkboxCount = getCheckboxCount(loja.potencial);
@@ -800,9 +864,14 @@
             const requiredChecks = checkboxCount <= 2 ? checkboxCount : 3;
             
             const row = document.getElementById(`row-${index}`);
-            row.classList.remove('visited-full', 'visited-partial');
+            row.classList.remove('visited-full', 'visited-partial', 'planejado');
             
-            if (totalVisits >= requiredChecks) {
+            // Se planejado estiver marcado, linha fica roxa
+            if (loja.planejado) {
+                row.classList.add('planejado');
+            }
+            // Senão, aplica as cores normais de visita
+            else if (totalVisits >= requiredChecks) {
                 row.classList.add('visited-full');
             } else if (totalVisits > 0 && totalVisits < requiredChecks) {
                 row.classList.add('visited-partial');
@@ -836,6 +905,7 @@
             if (confirm('Deseja limpar todas as visitas e pagamentos?')) {
                 lojas.forEach(loja => {
                     loja.pagamento = 0;
+                    loja.planejado = false;
                     loja.visitasPresencial = loja.visitasPresencial.map(() => false);
                     loja.visitasVirtual = loja.visitasVirtual.map(() => false);
                 });
@@ -845,11 +915,21 @@
 
         function filterTable() {
             const search = document.getElementById('searchInput').value.toLowerCase();
+            const filterZero = document.getElementById('filterZeroVisitas').checked;
             const rows = document.querySelectorAll('#tableBody tr');
             
-            rows.forEach(row => {
+            rows.forEach((row, index) => {
                 const text = row.textContent.toLowerCase();
-                row.style.display = text.includes(search) ? '' : 'none';
+                const matchSearch = text.includes(search);
+                
+                let matchFilter = true;
+                if (filterZero && lojas[index]) {
+                    const totalVisits = lojas[index].visitasPresencial.filter(v => v).length + 
+                                       lojas[index].visitasVirtual.filter(v => v).length;
+                    matchFilter = totalVisits === 0;
+                }
+                
+                row.style.display = (matchSearch && matchFilter) ? '' : 'none';
             });
         }
 
@@ -936,6 +1016,7 @@
                         nome: row['NOME DA LOJA'] || row['Nome da Loja'] || row.nome || row.Nome || row['nome da loja'] || '',
                         potencial: potencial,
                         gravameMes: gravameMes,
+                        planejado: false,
                         pagamento: 0,
                         visitasPresencial: new Array(checkboxCount).fill(false),
                         visitasVirtual: new Array(checkboxCount).fill(false)
