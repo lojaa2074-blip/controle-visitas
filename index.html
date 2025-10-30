@@ -1,0 +1,954 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Controle de Visitas</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            min-height: 100vh;
+            padding: 20px;
+        }
+
+        .header {
+            background: linear-gradient(135deg, #2e7d32 0%, #43a047 100%);
+            color: white;
+            padding: 20px 30px;
+            border-radius: 10px;
+            margin-bottom: 30px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .header h1 {
+            font-size: 28px;
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .stats-container {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+            gap: 20px;
+            margin-bottom: 30px;
+        }
+
+        .stat-card {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+        }
+
+        .stat-card .label {
+            color: #666;
+            font-size: 14px;
+            margin-bottom: 5px;
+        }
+
+        .stat-card .value {
+            color: #2e7d32;
+            font-size: 36px;
+            font-weight: bold;
+        }
+
+        .stat-card .icon {
+            font-size: 40px;
+            color: #4caf50;
+        }
+
+        .controls {
+            background: #c8e6c9;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            flex-wrap: wrap;
+            gap: 15px;
+        }
+
+        .search-box {
+            flex: 1;
+            min-width: 250px;
+        }
+
+        .search-box input {
+            width: 100%;
+            padding: 12px 15px;
+            border: 2px solid #81c784;
+            border-radius: 8px;
+            font-size: 16px;
+            outline: none;
+        }
+
+        .search-box input:focus {
+            border-color: #4caf50;
+        }
+
+        .btn-clear {
+            background: #f44336;
+            color: white;
+            border: none;
+            padding: 12px 25px;
+            border-radius: 8px;
+            cursor: pointer;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+            font-size: 16px;
+            font-weight: bold;
+            transition: background 0.3s;
+        }
+
+        .btn-clear:hover {
+            background: #d32f2f;
+        }
+
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+
+        thead {
+            background: #66bb6a;
+            color: white;
+        }
+
+        th {
+            padding: 15px;
+            text-align: left;
+            font-weight: 600;
+            font-size: 14px;
+            text-transform: uppercase;
+        }
+
+        tbody tr {
+            border-bottom: 1px solid #e0e0e0;
+            transition: background 0.3s;
+        }
+
+        tbody tr.visited-full {
+            background: #c8e6c9 !important;
+        }
+
+        tbody tr.visited-partial {
+            background: #ffe0e0 !important;
+        }
+
+        td {
+            padding: 15px;
+            font-size: 14px;
+        }
+
+        .potencial-badge {
+            padding: 8px 15px;
+            border-radius: 6px;
+            font-weight: bold;
+            text-align: center;
+            display: inline-block;
+            min-width: 120px;
+        }
+
+        /* F. > 30 GRAVAMES - Azul */
+        tbody .pot-f { 
+            background: #0070C0; 
+            color: white; 
+        }
+        
+        /* E. 21-30 GRAVAMES - Verde */
+        tbody .pot-e { 
+            background: #00B050; 
+            color: white; 
+        }
+        
+        /* D. 11-20 GRAVAMES - Marrom */
+        tbody .pot-d { 
+            background: #7B5225; 
+            color: white; 
+        }
+        
+        /* C. 6-10 GRAVAMES - Amarelo escuro/dourado */
+        tbody .pot-c { 
+            background: #BF9000; 
+            color: white; 
+        }
+        
+        /* B. 2-5 GRAVAMES - Amarelo */
+        tbody .pot-b { 
+            background: #FFFF00; 
+            color: black; 
+        }
+        
+        /* A. 1 GRAVAME - Laranja */
+        tbody .pot-a { 
+            background: #FFC000; 
+            color: black; 
+        }
+
+        .pagamento-cell {
+            display: flex;
+            align-items: center;
+            gap: 10px;
+        }
+
+        .pagamento-icon {
+            font-size: 24px;
+            color: #888;
+            cursor: pointer;
+            user-select: none;
+            transition: all 0.3s;
+            padding: 8px;
+            border-radius: 5px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .pagamento-icon.active {
+            background: #2196f3;
+        }
+
+        .pagamento-icon svg {
+            stroke: #888;
+        }
+
+        .pagamento-icon.active svg {
+            stroke: white;
+        }
+
+        .pagamento-count {
+            font-size: 18px;
+            font-weight: bold;
+            color: #2196f3;
+            min-width: 30px;
+            text-align: center;
+        }
+
+        .visitas-container {
+            display: flex;
+            flex-direction: column;
+            gap: 8px;
+        }
+
+        .visita-row {
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .visita-label {
+            font-size: 11px;
+            color: #666;
+            min-width: 70px;
+            font-weight: 600;
+        }
+
+        .checkbox-group {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .visit-checkbox {
+            width: 22px;
+            height: 22px;
+            border: 2px solid #4caf50;
+            border-radius: 4px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .visit-checkbox.virtual {
+            border-color: #ff9800;
+        }
+
+        .visit-checkbox.checked {
+            background: #4caf50;
+        }
+
+        .visit-checkbox.virtual.checked {
+            background: #ff9800;
+        }
+
+        .visit-checkbox.checked::after {
+            content: '✓';
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            color: white;
+            font-weight: bold;
+            font-size: 16px;
+        }
+
+        .control-btn {
+            width: 24px;
+            height: 24px;
+            border: none;
+            border-radius: 50%;
+            cursor: pointer;
+            font-weight: bold;
+            font-size: 16px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: all 0.2s;
+        }
+
+        .btn-plus {
+            background: #4caf50;
+            color: white;
+        }
+
+        .btn-plus:hover {
+            background: #45a049;
+        }
+
+        .btn-minus {
+            background: #f44336;
+            color: white;
+        }
+
+        .btn-minus:hover {
+            background: #da190b;
+        }
+
+        .footer {
+            text-align: center;
+            padding: 30px;
+            color: #2e7d32;
+            font-size: 14px;
+        }
+
+        .upload-section {
+            background: white;
+            padding: 20px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+        }
+
+        .upload-btn {
+            background: #4caf50;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.3s;
+        }
+
+        .upload-btn:hover {
+            background: #45a049;
+        }
+
+        .btn-reset {
+            background: #ff9800;
+            color: white;
+            padding: 12px 25px;
+            border: none;
+            border-radius: 8px;
+            cursor: pointer;
+            font-size: 16px;
+            font-weight: bold;
+            display: none;
+            align-items: center;
+            gap: 8px;
+            transition: background 0.3s;
+            margin-left: 15px;
+        }
+
+        .btn-reset:hover {
+            background: #f57c00;
+        }
+
+        input[type="file"] {
+            display: none;
+        }
+
+        .progresso-cell {
+            font-weight: bold;
+            color: #2e7d32;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>
+            <svg width="32" height="32" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"></path>
+                <circle cx="9" cy="7" r="4"></circle>
+                <path d="M23 21v-2a4 4 0 0 0-3-3.87"></path>
+                <path d="M16 3.13a4 4 0 0 1 0 7.75"></path>
+            </svg>
+            Controle de Visitas
+        </h1>
+    </div>
+
+    <div class="stats-container">
+        <div class="stat-card">
+            <div>
+                <div class="label">Total de Lojas</div>
+                <div class="value" id="totalLojas">0</div>
+            </div>
+            <div class="icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2">
+                    <path d="M3 9l9-7 9 7v11a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2z"></path>
+                    <polyline points="9 22 9 12 15 12 15 22"></polyline>
+                </svg>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div>
+                <div class="label">Pagamentos</div>
+                <div class="value" id="totalPagamentos">0</div>
+                <div class="label" style="font-size: 12px; margin-top: 5px;" id="lojasPagamento">0 lojas</div>
+            </div>
+            <div class="icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2">
+                    <line x1="12" y1="1" x2="12" y2="23"></line>
+                    <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                </svg>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div>
+                <div class="label">Visitadas</div>
+                <div class="value" id="totalVisitadas">0</div>
+            </div>
+            <div class="icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2">
+                    <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"></path>
+                    <circle cx="12" cy="12" r="3"></circle>
+                </svg>
+            </div>
+        </div>
+        <div class="stat-card">
+            <div>
+                <div class="label">Completas</div>
+                <div class="value" id="totalCompletas">0</div>
+            </div>
+            <div class="icon">
+                <svg width="40" height="40" viewBox="0 0 24 24" fill="none" stroke="#4caf50" stroke-width="2">
+                    <polyline points="22 12 18 12 15 21 9 3 6 12 2 12"></polyline>
+                </svg>
+            </div>
+        </div>
+    </div>
+
+    <div class="controls">
+        <div class="search-box">
+            <input type="text" id="searchInput" placeholder="🔍 Buscar loja..." onkeyup="filterTable()">
+        </div>
+        <button class="btn-clear" onclick="clearVisits()">
+            <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                <polyline points="3 6 5 6 21 6"></polyline>
+                <path d="M19 6v14a2 2 0 0 1-2 2H7a2 2 0 0 1-2-2V6m3 0V4a2 2 0 0 1 2-2h4a2 2 0 0 1 2 2v2"></path>
+            </svg>
+            Limpar
+        </button>
+    </div>
+
+    <div class="table-container">
+        <table>
+            <thead>
+                <tr>
+                    <th>DN</th>
+                    <th>Nome da Loja</th>
+                    <th>Potencial</th>
+                    <th>Gravame Mês</th>
+                    <th>Pagamento</th>
+                    <th>Visitas</th>
+                    <th>Progresso</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody">
+                <!-- Dados serão inseridos aqui -->
+            </tbody>
+        </table>
+    </div>
+
+    <div class="footer">
+        <div class="upload-section" style="background: transparent; padding: 0; margin-bottom: 20px; box-shadow: none;">
+            <input type="file" id="fileInput" accept=".xlsx,.xls">
+            <button class="upload-btn" onclick="document.getElementById('fileInput').click()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"></path>
+                    <polyline points="17 8 12 3 7 8"></polyline>
+                    <line x1="12" y1="3" x2="12" y2="15"></line>
+                </svg>
+                Carregar Planilha Excel
+            </button>
+            <button class="btn-reset" onclick="resetData()">
+                <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                    <polyline points="1 4 1 10 7 10"></polyline>
+                    <polyline points="23 20 23 14 17 14"></polyline>
+                    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                </svg>
+                Resetar Dados
+            </button>
+            <span id="fileName" style="margin-left: 15px; color: #666;"></span>
+        </div>
+        <div style="margin-top: 20px;">Developed by @marcosacustodio</div>
+    </div>
+
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+    <script>
+        let lojas = [];
+
+        function getPotencialClass(potencial) {
+            const pot = potencial.toUpperCase();
+            if (pot.includes('F') || pot.includes('>30') || pot.includes('> 30')) return 'pot-f';
+            if (pot.includes('E') || pot.includes('21-30')) return 'pot-e';
+            if (pot.includes('D') || pot.includes('11-20')) return 'pot-d';
+            if (pot.includes('C') || pot.includes('6-10')) return 'pot-c';
+            if (pot.includes('B') || pot.includes('2-5')) return 'pot-b';
+            if (pot.includes('A') || pot.includes('1 GRAVAME')) return 'pot-a';
+            return 'pot-a';
+        }
+
+        function getCheckboxCount(potencial) {
+            const pot = potencial.toUpperCase();
+            if (pot.includes('A') || pot.includes('1 GRAVAME')) return 1;
+            if (pot.includes('B') || pot.includes('2-5')) return 2;
+            return 4;
+        }
+
+        function renderTable() {
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            lojas.forEach((loja, index) => {
+                const tr = document.createElement('tr');
+                tr.id = `row-${index}`;
+                
+                const checkboxCount = loja.visitasPresencial.length;
+                const requiredChecks = checkboxCount <= 2 ? checkboxCount : 3;
+                
+                // Criar checkboxes presenciais
+                const presencialContainer = document.createElement('div');
+                presencialContainer.className = 'checkbox-group';
+                
+                for (let i = 0; i < loja.visitasPresencial.length; i++) {
+                    const checkbox = document.createElement('div');
+                    checkbox.className = `visit-checkbox ${loja.visitasPresencial[i] ? 'checked' : ''}`;
+                    checkbox.onclick = () => toggleVisit(index, 'presencial', i);
+                    presencialContainer.appendChild(checkbox);
+                }
+                
+                const btnPlusPresencial = document.createElement('button');
+                btnPlusPresencial.className = 'control-btn btn-plus';
+                btnPlusPresencial.textContent = '+';
+                btnPlusPresencial.onclick = (e) => {
+                    e.stopPropagation();
+                    addCheckbox(index, 'presencial');
+                };
+                presencialContainer.appendChild(btnPlusPresencial);
+                
+                const btnMinusPresencial = document.createElement('button');
+                btnMinusPresencial.className = 'control-btn btn-minus';
+                btnMinusPresencial.textContent = '−';
+                btnMinusPresencial.onclick = (e) => {
+                    e.stopPropagation();
+                    removeCheckbox(index, 'presencial');
+                };
+                presencialContainer.appendChild(btnMinusPresencial);
+                
+                // Criar checkboxes virtuais
+                const virtualContainer = document.createElement('div');
+                virtualContainer.className = 'checkbox-group';
+                
+                for (let i = 0; i < loja.visitasVirtual.length; i++) {
+                    const checkbox = document.createElement('div');
+                    checkbox.className = `visit-checkbox virtual ${loja.visitasVirtual[i] ? 'checked' : ''}`;
+                    checkbox.onclick = () => toggleVisit(index, 'virtual', i);
+                    virtualContainer.appendChild(checkbox);
+                }
+                
+                const btnPlusVirtual = document.createElement('button');
+                btnPlusVirtual.className = 'control-btn btn-plus';
+                btnPlusVirtual.textContent = '+';
+                btnPlusVirtual.onclick = (e) => {
+                    e.stopPropagation();
+                    addCheckbox(index, 'virtual');
+                };
+                virtualContainer.appendChild(btnPlusVirtual);
+                
+                const btnMinusVirtual = document.createElement('button');
+                btnMinusVirtual.className = 'control-btn btn-minus';
+                btnMinusVirtual.textContent = '−';
+                btnMinusVirtual.onclick = (e) => {
+                    e.stopPropagation();
+                    removeCheckbox(index, 'virtual');
+                };
+                virtualContainer.appendChild(btnMinusVirtual);
+                
+                // Criar células
+                const tdDn = document.createElement('td');
+                tdDn.textContent = loja.dn;
+                
+                const tdNome = document.createElement('td');
+                tdNome.textContent = loja.nome;
+                
+                const tdPotencial = document.createElement('td');
+                const potencialBadge = document.createElement('span');
+                potencialBadge.className = 'potencial-badge';
+                potencialBadge.textContent = loja.potencial;
+                
+                // Determinar cor baseado no potencial
+                const potTexto = loja.potencial.toUpperCase().trim();
+                
+                // F. > 30 GRAVAMES - Azul (verificar primeiro os com mais de 30)
+                if (potTexto.includes('>') && potTexto.includes('30')) {
+                    potencialBadge.style.backgroundColor = '#0070C0';
+                    potencialBadge.style.color = 'white';
+                }
+                // E. 21-30 - Verde
+                else if (potTexto.startsWith('E.') || potTexto.includes('21-30') || (potTexto.startsWith('E') && potTexto.includes('GRAVAME'))) {
+                    potencialBadge.style.backgroundColor = '#00B050';
+                    potencialBadge.style.color = 'white';
+                }
+                // D. 11-20 GRAVAMES - Marrom
+                else if (potTexto.startsWith('D.') || potTexto.includes('11-20') || (potTexto.startsWith('D') && potTexto.includes('GRAVAME'))) {
+                    potencialBadge.style.backgroundColor = '#7B5225';
+                    potencialBadge.style.color = 'white';
+                }
+                // C. 6-10 GRAVAMES - Cinza
+                else if (potTexto.startsWith('C.') || potTexto.includes('6-10') || (potTexto.startsWith('C') && potTexto.includes('GRAVAME'))) {
+                    potencialBadge.style.backgroundColor = '#808080';
+                    potencialBadge.style.color = 'white';
+                }
+                // B. 2-5 GRAVAMES - Laranja
+                else if (potTexto.startsWith('B.') || potTexto.includes('2-5') || (potTexto.startsWith('B') && potTexto.includes('GRAVAME'))) {
+                    potencialBadge.style.backgroundColor = '#FF8C00';
+                    potencialBadge.style.color = 'black';
+                }
+                // A. 1 GRAVAME - Amarelo
+                else if (potTexto.startsWith('A.') || potTexto.includes('1 GRAVAME') || (potTexto.startsWith('A') && potTexto.includes('GRAVAME'))) {
+                    potencialBadge.style.backgroundColor = '#FFFF00';
+                    potencialBadge.style.color = 'black';
+                }
+                // F como fallback (caso não tenha > 30)
+                else if (potTexto.startsWith('F.') || (potTexto.startsWith('F') && potTexto.includes('GRAVAME'))) {
+                    potencialBadge.style.backgroundColor = '#0070C0';
+                    potencialBadge.style.color = 'white';
+                }
+                
+                tdPotencial.appendChild(potencialBadge);
+                
+                const tdGravameMes = document.createElement('td');
+                tdGravameMes.textContent = loja.gravameMes || '-';
+                tdGravameMes.style.fontWeight = 'bold';
+                tdGravameMes.style.textAlign = 'center';
+                tdGravameMes.style.color = '#2e7d32';
+                
+                const tdPagamento = document.createElement('td');
+                const pagamentoCell = document.createElement('div');
+                pagamentoCell.className = 'pagamento-cell';
+                
+                const pagamentoIcon = document.createElement('div');
+                pagamentoIcon.className = `pagamento-icon ${loja.pagamento > 0 ? 'active' : ''}`;
+                pagamentoIcon.innerHTML = `
+                    <svg width="24" height="24" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2">
+                        <line x1="12" y1="1" x2="12" y2="23"></line>
+                        <path d="M17 5H9.5a3.5 3.5 0 0 0 0 7h5a3.5 3.5 0 0 1 0 7H6"></path>
+                    </svg>
+                `;
+                pagamentoIcon.onclick = () => togglePagamento(index);
+                pagamentoIcon.onmousedown = () => startPagamentoHold(index);
+                pagamentoIcon.onmouseup = () => cancelPagamentoHold();
+                pagamentoIcon.onmouseleave = () => cancelPagamentoHold();
+                pagamentoIcon.ontouchstart = () => startPagamentoHold(index);
+                pagamentoIcon.ontouchend = () => cancelPagamentoHold();
+                
+                const pagamentoCount = document.createElement('div');
+                pagamentoCount.className = 'pagamento-count';
+                pagamentoCount.textContent = loja.pagamento;
+                
+                pagamentoCell.appendChild(pagamentoIcon);
+                pagamentoCell.appendChild(pagamentoCount);
+                tdPagamento.appendChild(pagamentoCell);
+                
+                const tdVisitas = document.createElement('td');
+                const visitasContainer = document.createElement('div');
+                visitasContainer.className = 'visitas-container';
+                
+                const visitaRowPresencial = document.createElement('div');
+                visitaRowPresencial.className = 'visita-row';
+                const labelPresencial = document.createElement('span');
+                labelPresencial.className = 'visita-label';
+                labelPresencial.textContent = 'Presencial';
+                visitaRowPresencial.appendChild(labelPresencial);
+                visitaRowPresencial.appendChild(presencialContainer);
+                
+                const visitaRowVirtual = document.createElement('div');
+                visitaRowVirtual.className = 'visita-row';
+                const labelVirtual = document.createElement('span');
+                labelVirtual.className = 'visita-label';
+                labelVirtual.textContent = 'Virtual';
+                visitaRowVirtual.appendChild(labelVirtual);
+                visitaRowVirtual.appendChild(virtualContainer);
+                
+                visitasContainer.appendChild(visitaRowPresencial);
+                visitasContainer.appendChild(visitaRowVirtual);
+                tdVisitas.appendChild(visitasContainer);
+                
+                const tdProgresso = document.createElement('td');
+                tdProgresso.className = 'progresso-cell';
+                const totalChecked = loja.visitasPresencial.filter(v => v).length + loja.visitasVirtual.filter(v => v).length;
+                const totalCheckboxes = loja.visitasPresencial.length + loja.visitasVirtual.length;
+                tdProgresso.textContent = `${totalChecked}/${totalCheckboxes}`;
+                
+                tr.appendChild(tdDn);
+                tr.appendChild(tdNome);
+                tr.appendChild(tdPotencial);
+                tr.appendChild(tdGravameMes);
+                tr.appendChild(tdPagamento);
+                tr.appendChild(tdVisitas);
+                tr.appendChild(tdProgresso);
+                
+                tbody.appendChild(tr);
+                updateRowColor(index);
+            });
+
+            updateStats();
+            saveToCache();
+        }
+
+        let pagamentoHoldTimer = null;
+        let holdIndex = null;
+
+        function startPagamentoHold(index) {
+            holdIndex = index;
+            pagamentoHoldTimer = setTimeout(() => {
+                lojas[index].pagamento = 0;
+                renderTable();
+            }, 3000);
+        }
+
+        function cancelPagamentoHold() {
+            if (pagamentoHoldTimer) {
+                clearTimeout(pagamentoHoldTimer);
+                pagamentoHoldTimer = null;
+                holdIndex = null;
+            }
+        }
+
+        function togglePagamento(index) {
+            cancelPagamentoHold();
+            lojas[index].pagamento++;
+            renderTable();
+        }
+
+        function toggleVisit(index, type, checkboxIndex) {
+            if (type === 'presencial') {
+                lojas[index].visitasPresencial[checkboxIndex] = !lojas[index].visitasPresencial[checkboxIndex];
+            } else {
+                lojas[index].visitasVirtual[checkboxIndex] = !lojas[index].visitasVirtual[checkboxIndex];
+            }
+            renderTable();
+        }
+
+        function addCheckbox(index, type) {
+            if (type === 'presencial') {
+                lojas[index].visitasPresencial.push(false);
+            } else {
+                lojas[index].visitasVirtual.push(false);
+            }
+            renderTable();
+        }
+
+        function removeCheckbox(index, type) {
+            if (type === 'presencial' && lojas[index].visitasPresencial.length > 1) {
+                lojas[index].visitasPresencial.pop();
+            } else if (type === 'virtual' && lojas[index].visitasVirtual.length > 1) {
+                lojas[index].visitasVirtual.pop();
+            }
+            renderTable();
+        }
+
+        function updateRowColor(index) {
+            const loja = lojas[index];
+            const checkboxCount = getCheckboxCount(loja.potencial);
+            const totalVisits = loja.visitasPresencial.filter(v => v).length + loja.visitasVirtual.filter(v => v).length;
+            const requiredChecks = checkboxCount <= 2 ? checkboxCount : 3;
+            
+            const row = document.getElementById(`row-${index}`);
+            row.classList.remove('visited-full', 'visited-partial');
+            
+            if (totalVisits >= requiredChecks) {
+                row.classList.add('visited-full');
+            } else if (totalVisits > 0 && totalVisits < requiredChecks) {
+                row.classList.add('visited-partial');
+            }
+        }
+
+        function updateStats() {
+            document.getElementById('totalLojas').textContent = lojas.length;
+            
+            const totalPag = lojas.reduce((sum, loja) => sum + loja.pagamento, 0);
+            const lojasPag = lojas.filter(loja => loja.pagamento > 0).length;
+            document.getElementById('totalPagamentos').textContent = totalPag;
+            document.getElementById('lojasPagamento').textContent = `${lojasPag} lojas`;
+            
+            const visitadas = lojas.filter(loja => {
+                const total = loja.visitasPresencial.filter(v => v).length + loja.visitasVirtual.filter(v => v).length;
+                return total > 0;
+            }).length;
+            document.getElementById('totalVisitadas').textContent = visitadas;
+            
+            const completas = lojas.filter(loja => {
+                const checkboxCount = getCheckboxCount(loja.potencial);
+                const total = loja.visitasPresencial.filter(v => v).length + loja.visitasVirtual.filter(v => v).length;
+                const required = checkboxCount <= 2 ? checkboxCount : 3;
+                return total >= required;
+            }).length;
+            document.getElementById('totalCompletas').textContent = completas;
+        }
+
+        function clearVisits() {
+            if (confirm('Deseja limpar todas as visitas e pagamentos?')) {
+                lojas.forEach(loja => {
+                    loja.pagamento = 0;
+                    loja.visitasPresencial = loja.visitasPresencial.map(() => false);
+                    loja.visitasVirtual = loja.visitasVirtual.map(() => false);
+                });
+                renderTable();
+            }
+        }
+
+        function filterTable() {
+            const search = document.getElementById('searchInput').value.toLowerCase();
+            const rows = document.querySelectorAll('#tableBody tr');
+            
+            rows.forEach(row => {
+                const text = row.textContent.toLowerCase();
+                row.style.display = text.includes(search) ? '' : 'none';
+            });
+        }
+
+        function saveToCache() {
+            localStorage.setItem('controleVisitas', JSON.stringify(lojas));
+        }
+
+        function loadFromCache() {
+            const cached = localStorage.getItem('controleVisitas');
+            if (cached) {
+                lojas = JSON.parse(cached);
+                renderTable();
+            }
+        }
+
+        function resetData() {
+            const confirmar = confirm('⚠️ ATENÇÃO!\n\nTem certeza que deseja resetar TODOS os dados?\n\nIsso irá:\n- Apagar todas as lojas\n- Limpar todas as visitas\n- Remover todos os pagamentos\n\nEsta ação NÃO pode ser desfeita!');
+            
+            if (confirmar) {
+                try {
+                    lojas = [];
+                    localStorage.clear();
+                    
+                    const fileInput = document.getElementById('fileInput');
+                    if (fileInput) {
+                        fileInput.value = '';
+                    }
+                    
+                    const fileName = document.getElementById('fileName');
+                    if (fileName) {
+                        fileName.textContent = '';
+                    }
+                    
+                    const tbody = document.getElementById('tableBody');
+                    if (tbody) {
+                        tbody.innerHTML = '';
+                    }
+                    
+                    document.getElementById('totalLojas').textContent = '0';
+                    document.getElementById('totalPagamentos').textContent = '0';
+                    document.getElementById('lojasPagamento').textContent = '0 lojas';
+                    document.getElementById('totalVisitadas').textContent = '0';
+                    document.getElementById('totalCompletas').textContent = '0';
+                    
+                    alert('✅ Dados resetados com sucesso!');
+                } catch (error) {
+                    alert('Erro ao resetar dados: ' + error.message);
+                }
+            }
+        }
+
+        document.getElementById('fileInput').addEventListener('change', function(e) {
+            const file = e.target.files[0];
+            if (!file) return;
+
+            document.getElementById('fileName').textContent = file.name;
+
+            const reader = new FileReader();
+            reader.onload = function(e) {
+                const data = new Uint8Array(e.target.result);
+                const workbook = XLSX.read(data, { type: 'array' });
+                const firstSheet = workbook.Sheets[workbook.SheetNames[0]];
+                const jsonData = XLSX.utils.sheet_to_json(firstSheet);
+
+                lojas = jsonData.map(row => {
+                    const potencial = row.Potencial || row.potencial || row.POTENCIAL || '';
+                    const checkboxCount = getCheckboxCount(potencial);
+                    
+                    // Tentar todas as variações possíveis da coluna Gravame Mês
+                    const gravameMes = row['Gravame Mês'] || 
+                                      row['GRAVAME MÊS'] || 
+                                      row['gravame mês'] || 
+                                      row['Gravame Mes'] ||
+                                      row['GRAVAME MES'] ||
+                                      row['gravame mes'] ||
+                                      row['GravameMês'] ||
+                                      row['GravameMes'] ||
+                                      row['Gravames Mês'] ||
+                                      row['GRAVAMES MÊS'] ||
+                                      '';
+                    
+                    return {
+                        dn: row.DN || row.dn || '',
+                        nome: row['NOME DA LOJA'] || row['Nome da Loja'] || row.nome || row.Nome || row['nome da loja'] || '',
+                        potencial: potencial,
+                        gravameMes: gravameMes,
+                        pagamento: 0,
+                        visitasPresencial: new Array(checkboxCount).fill(false),
+                        visitasVirtual: new Array(checkboxCount).fill(false)
+                    };
+                });
+
+                renderTable();
+            };
+            reader.readAsArrayBuffer(file);
+        });
+
+        // Carregar dados do cache ao iniciar
+        loadFromCache();
+    </script>
+</body>
+</html>
